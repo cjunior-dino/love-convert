@@ -1,0 +1,172 @@
+<header class="topbar">
+  <a class="brand" href="#main" aria-label="Love Convert — início">
+    <span class="brand__mark" aria-hidden="true">L</span>
+    <span>Love Convert</span>
+  </a>
+</header>
+
+<main id="main" class="page-shell">
+  <section class="hero" aria-labelledby="page-title">
+    <p class="eyebrow">Documentos, do seu jeito</p>
+    <h1 id="page-title">Converta sem complicação.</h1>
+    <p class="hero__description">
+      Transforme DOCX em Markdown, HTML ou PDF e converta PDF em DOCX sem enviar
+      seus arquivos para serviços externos.
+    </p>
+  </section>
+
+  <section class="converter-card" aria-label="Conversor de documentos">
+    @if (!result) {
+      <div class="step-heading">
+        <span>01</span>
+        <div>
+          <h2>Escolha o documento</h2>
+          <p>Até 10 MB, nos formatos .docx ou .pdf</p>
+        </div>
+      </div>
+
+      <div
+        class="dropzone"
+        [class.dropzone--active]="isDragging"
+        [class.dropzone--selected]="selectedFile"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        <input
+          #fileInput
+          class="visually-hidden"
+          type="file"
+          accept=".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          (change)="onFileInput($event)"
+        />
+
+        @if (selectedFile) {
+          <div class="file-card">
+            <span class="file-card__icon" aria-hidden="true">{{ selectedFileType }}</span>
+            <div class="file-card__details">
+              <strong>{{ selectedFile.name }}</strong>
+              <span>{{ selectedFileSize }} · pronto para converter</span>
+            </div>
+            <button
+              mat-button
+              type="button"
+              (click)="fileInput.click()"
+              [disabled]="isLoading"
+            >
+              Trocar
+            </button>
+          </div>
+        } @else {
+          <span class="upload-symbol" aria-hidden="true">↑</span>
+          <h3>Arraste o arquivo para cá</h3>
+          <p>ou</p>
+          <button mat-stroked-button type="button" (click)="fileInput.click()">
+            Selecionar arquivo
+          </button>
+        }
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="convert()" class="conversion-form">
+        <div class="format-row">
+          <div>
+            <span class="section-label">Formato de saída</span>
+            <small>
+              {{ isPdfInput ? 'PDF será convertido em DOCX' : 'Escolha como deseja usar o conteúdo' }}
+            </small>
+          </div>
+          <mat-button-toggle-group
+            formControlName="outputFormat"
+            aria-label="Formato de saída"
+          >
+            @if (isPdfInput) {
+              <mat-button-toggle value="docx">DOCX</mat-button-toggle>
+            } @else {
+              <mat-button-toggle value="markdown">Markdown</mat-button-toggle>
+              <mat-button-toggle value="html">HTML</mat-button-toggle>
+              <mat-button-toggle value="pdf">PDF</mat-button-toggle>
+            }
+          </mat-button-toggle-group>
+        </div>
+
+        @if (errorMessage) {
+          <div class="message message--error" role="alert">{{ errorMessage }}</div>
+        }
+
+        <button
+          data-testid="convert-button"
+          mat-flat-button
+          class="convert-button"
+          type="submit"
+          [disabled]="!canConvert"
+        >
+          @if (isLoading) {
+            <mat-spinner diameter="20"></mat-spinner>
+            Convertendo…
+          } @else {
+            Converter documento <span aria-hidden="true">→</span>
+          }
+        </button>
+      </form>
+    } @else {
+      <div class="result-header">
+        <div class="success-mark" aria-hidden="true">✓</div>
+        <div>
+          <p class="eyebrow">Tudo certo</p>
+          <h2>Documento convertido</h2>
+          <p class="success-copy" role="status">{{ successMessage }}</p>
+        </div>
+      </div>
+
+      <div class="result-file">
+        <div>
+          <strong>{{ result.original_name }}</strong>
+          <span>{{ formatLabel(result.output_format) }}</span>
+        </div>
+        <div class="result-actions">
+          @if (isTextResult) {
+            <button mat-stroked-button type="button" (click)="copyContent()">
+              Copiar
+            </button>
+          }
+          <a mat-flat-button [href]="downloadUrl">Baixar arquivo</a>
+        </div>
+      </div>
+
+      @if (isTextResult) {
+        <mat-tab-group class="preview-tabs" animationDuration="150ms">
+          <mat-tab label="Código">
+            <pre class="code-preview"><code>{{ result.content }}</code></pre>
+          </mat-tab>
+          <mat-tab label="Visualização">
+            <iframe
+              class="rendered-preview"
+              title="Visualização segura do documento convertido"
+              sandbox=""
+              [srcdoc]="renderedPreview"
+            ></iframe>
+          </mat-tab>
+        </mat-tab-group>
+      } @else {
+        <p class="binary-result-note">
+          A prévia não está disponível para este formato. Use o botão acima para baixar o arquivo.
+        </p>
+      }
+
+      <button mat-button class="new-button" type="button" (click)="newConversion()">
+        ← Nova conversão
+      </button>
+    }
+  </section>
+
+  <div class="trust-row" aria-label="Características">
+    <span><i aria-hidden="true">01</i> Processamento local</span>
+    <span><i aria-hidden="true">02</i> Arquivos isolados</span>
+    <span><i aria-hidden="true">03</i> Sem cadastro</span>
+  </div>
+</main>
+
+<footer>
+  <span>Love Convert</span>
+  <span>Feito para documentos que precisam ir além.</span>
+</footer>

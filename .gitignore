@@ -1,0 +1,25 @@
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*.sqlite3
+.venv/
+venv/
+backend/media/conversions/
+backend/staticfiles/
+
+# Angular / Node
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/coverage/
+npm-debug.log*
+
+# Local configuration
+.env
+.env.*
+!.env.example
