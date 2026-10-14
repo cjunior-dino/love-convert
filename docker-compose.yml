@@ -37,9 +37,27 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    expose:
+      - "80"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    environment:
+      APP_SITE: ${APP_SITE:-http://localhost}
     ports:
-      - "${APP_PORT:-80}:80"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
 
 volumes:
   database_data:
   conversion_files:
+  caddy_data:
+  caddy_config:

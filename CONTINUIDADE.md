@@ -168,11 +168,12 @@ O `docker-compose.yml` inicia:
 
 - `backend`: Django com Gunicorn e LibreOffice;
 - `frontend`: Nginx com o build Angular;
+- `caddy`: proxy público com HTTPS automático;
 - volume `database_data`: banco SQLite persistente;
 - volume `conversion_files`: entradas e saídas das conversões;
 - healthcheck do backend antes do início do frontend.
 
-Somente o Nginx publica uma porta no host. O backend fica acessível apenas pela rede interna do Compose.
+Somente o Caddy publica as portas 80 e 443 no host. O frontend e o backend ficam acessíveis apenas pela rede interna do Compose.
 
 ## Arquivos adicionados para implantação
 
@@ -182,6 +183,7 @@ docker-compose.yml
 .dockerignore
 .env.example
 docker/nginx.conf
+docker/Caddyfile
 docker/fontconfig-local.conf
 docker/fonts/.gitkeep
 frontend/proxy.conf.json
@@ -289,13 +291,13 @@ python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 Exemplo de `.env`:
 
 ```env
-APP_PORT=80
+APP_SITE=ilove-convert.online
 DJANGO_SECRET_KEY=troque-por-uma-chave-longa-e-aleatoria
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,seu-dominio.com
-DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost,https://seu-dominio.com
+DJANGO_ALLOWED_HOSTS=ilove-convert.online
+DJANGO_CSRF_TRUSTED_ORIGINS=https://ilove-convert.online
 ```
 
-Para acesso pelo IP da VPS, adicione também o IP em `DJANGO_ALLOWED_HOSTS`.
+O registro DNS do domínio deve apontar para o IP da VPS. O Caddy obtém e renova o certificado TLS automaticamente.
 
 ### 2. Construir e iniciar
 
@@ -368,16 +370,15 @@ Os contêineres utilizados na validação foram encerrados. As imagens Docker co
 
 ## Próximas melhorias recomendadas
 
-1. Configurar HTTPS com Caddy, Traefik ou um proxy reverso da infraestrutura.
-2. Adicionar autenticação antes de disponibilizar a aplicação publicamente.
-3. Criar rotina automática para apagar conversões antigas.
-4. Limitar quantidade de conversões simultâneas.
-5. Migrar para PostgreSQL se houver múltiplos usuários.
-6. Adotar fila assíncrona para documentos grandes.
-7. Adicionar endpoint específico de saúde HTTP.
-8. Fixar versões de imagens e dependências para builds reprodutíveis.
-9. Revisar as dependências do frontend indicadas pelo `npm audit`.
-10. Adicionar testes ponta a ponta executados pelo pipeline do repositório.
+1. Adicionar autenticação antes de disponibilizar a aplicação publicamente.
+2. Criar rotina automática para apagar conversões antigas.
+3. Limitar quantidade de conversões simultâneas.
+4. Migrar para PostgreSQL se houver múltiplos usuários.
+5. Adotar fila assíncrona para documentos grandes.
+6. Adicionar endpoint específico de saúde HTTP.
+7. Fixar versões de imagens e dependências para builds reprodutíveis.
+8. Revisar as dependências do frontend indicadas pelo `npm audit`.
+9. Adicionar testes ponta a ponta executados pelo pipeline do repositório.
 
 ## Arquivos mais importantes para continuar
 
@@ -393,6 +394,7 @@ backend/conversions/tests/test_document_converter.py
 frontend/src/app/core/services/conversion.service.ts
 frontend/proxy.conf.json
 docker/nginx.conf
+docker/Caddyfile
 docker/fontconfig-local.conf
 ```
 

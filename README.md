@@ -109,7 +109,7 @@ A conversão de DOCX para PDF usa diretamente o LibreOffice Writer em modo headl
 
 ## Execução com Docker
 
-O `Dockerfile` possui dois alvos: `backend`, com Django, Gunicorn, Pandoc e LibreOffice, e `frontend`, com o build Angular servido pelo Nginx. O `docker-compose.yml` conecta os serviços, executa as migrações e mantém o banco e os arquivos convertidos em volumes persistentes.
+O `Dockerfile` possui dois alvos: `backend`, com Django, Gunicorn, Pandoc e LibreOffice, e `frontend`, com o build Angular servido pelo Nginx. O `docker-compose.yml` conecta os serviços, executa as migrações, mantém o banco e os arquivos convertidos em volumes persistentes e usa Caddy como entrada pública com HTTPS automático.
 
 Na raiz do projeto, crie a configuração local:
 
@@ -123,7 +123,18 @@ Gere uma chave e coloque o valor em `DJANGO_SECRET_KEY` dentro do arquivo `.env`
 python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
-No mesmo arquivo, substitua `seu-dominio.com` pelo domínio ou endereço IP da VPS. Para uma instalação apenas local, remova esse valor e mantenha `localhost,127.0.0.1`.
+No mesmo arquivo, substitua `seu-dominio.com` pelo domínio ou endereço IP da VPS. Para uma instalação apenas local, mantenha `APP_SITE=http://localhost` e `localhost,127.0.0.1` nos hosts permitidos.
+
+Exemplo para produção em `ilove-convert.online`:
+
+```env
+APP_SITE=ilove-convert.online
+DJANGO_SECRET_KEY=troque-por-uma-chave-longa-e-aleatoria
+DJANGO_ALLOWED_HOSTS=ilove-convert.online
+DJANGO_CSRF_TRUSTED_ORIGINS=https://ilove-convert.online
+```
+
+O DNS do domínio deve apontar para o IP público da VPS e as portas TCP 80 e 443 e UDP 443 precisam estar liberadas. O Caddy obtém e renova o certificado TLS automaticamente.
 
 Construa e inicie os contêineres:
 
@@ -133,10 +144,11 @@ docker compose up -d
 docker compose ps
 ```
 
-A aplicação ficará disponível na porta definida por `APP_PORT`, que é `80` por padrão. Para acompanhar o backend:
+A aplicação ficará disponível no endereço definido por `APP_SITE`. Para acompanhar o backend e o proxy HTTPS:
 
 ```bash
 docker compose logs -f backend
+docker compose logs -f caddy
 ```
 
 Depois de alterar o código, atualize o ambiente com:
@@ -151,7 +163,7 @@ Para interromper os serviços sem apagar os documentos e o banco:
 docker compose down
 ```
 
-Os volumes `database_data` e `conversion_files` são mantidos pelo Docker. O comando `docker compose down -v` também apaga esses volumes e deve ser usado apenas quando os dados não forem mais necessários.
+Os volumes `database_data`, `conversion_files`, `caddy_data` e `caddy_config` são mantidos pelo Docker. O comando `docker compose down -v` também apaga esses volumes e deve ser usado apenas quando os dados não forem mais necessários.
 
 ### Fontes no contêiner
 
