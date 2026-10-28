@@ -1,10 +1,10 @@
-# Contexto de continuidade do projeto Love Convert
+# Contexto de continuidade do projeto LoveConvert
 
 Este documento reúne o histórico técnico, as decisões tomadas, o estado atual do projeto e os comandos necessários para continuar o desenvolvimento em outra máquina.
 
 ## Objetivo do projeto
 
-O Love Convert é uma aplicação web para conversão local de documentos, composta por:
+O LoveConvert é uma aplicação web para conversão local de documentos, composta por:
 
 - frontend Angular;
 - backend Django e Django REST Framework;

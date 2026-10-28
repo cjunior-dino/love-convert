@@ -1,4 +1,4 @@
-# Love Convert
+# LoveConvert
 
 Aplicação full stack local para converter documentos `.docx` em Markdown (GFM), HTML ou PDF e arquivos `.pdf` em DOCX. O frontend Angular oferece upload por clique ou arrastar e soltar, validação, progresso, prévia segura para formatos de texto e download. O backend Django executa as conversões de forma síncrona, registra o estado no SQLite e isola cada conversão em um diretório UUID.
 

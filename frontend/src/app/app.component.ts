@@ -1,9 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  inject,
+} from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -24,7 +28,6 @@ import { PreviewService } from './core/services/preview.service';
     CommonModule,
     ReactiveFormsModule,
     MatButtonModule,
-    MatButtonToggleModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTabsModule,
@@ -38,9 +41,10 @@ export class AppComponent {
   private readonly fileSelection = inject(FileSelectionService);
   private readonly previewService = inject(PreviewService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly changeDetector = inject(ChangeDetectorRef);
 
   readonly form = new FormGroup({
-    outputFormat: new FormControl<OutputFormat>('markdown', {
+    outputFormat: new FormControl<OutputFormat>('pdf', {
       nonNullable: true,
     }),
   });
@@ -52,6 +56,33 @@ export class AppComponent {
   successMessage = '';
   isLoading = false;
   isDragging = false;
+  activeFormat: OutputFormat | null = null;
+
+  readonly formatOptions: Record<
+    OutputFormat,
+    { description: string; action: string; shortLabel: string }
+  > = {
+    pdf: {
+      description: 'Documento pronto para compartilhar',
+      action: 'Converter para PDF',
+      shortLabel: 'PDF',
+    },
+    html: {
+      description: 'Página pronta para visualizar',
+      action: 'Converter para HTML',
+      shortLabel: 'HTML',
+    },
+    markdown: {
+      description: 'Texto leve e estruturado',
+      action: 'Converter para Markdown',
+      shortLabel: 'MD',
+    },
+    docx: {
+      description: 'Documento editável no Word',
+      action: 'Converter para DOCX',
+      shortLabel: 'DOCX',
+    },
+  };
 
   get canConvert(): boolean {
     return this.selectedFile !== null && !this.isLoading;
@@ -63,6 +94,10 @@ export class AppComponent {
 
   get selectedFileType(): string {
     return this.isPdfInput ? 'PDF' : 'DOCX';
+  }
+
+  get availableFormats(): OutputFormat[] {
+    return this.isPdfInput ? ['docx'] : ['pdf', 'html', 'markdown'];
   }
 
   get isTextResult(): boolean {
@@ -118,13 +153,23 @@ export class AppComponent {
     if (validationError) {
       this.selectedFile = null;
       this.errorMessage = validationError;
+      this.changeDetector.markForCheck();
       return;
     }
     this.selectedFile = file;
     this.form.controls.outputFormat.setValue(
-      file.name.toLowerCase().endsWith('.pdf') ? 'docx' : 'markdown',
+      file.name.toLowerCase().endsWith('.pdf') ? 'docx' : 'pdf',
     );
     this.errorMessage = '';
+    this.changeDetector.markForCheck();
+  }
+
+  selectOutputFormat(format: OutputFormat): void {
+    if (!this.selectedFile || this.isLoading) {
+      return;
+    }
+    this.form.controls.outputFormat.setValue(format);
+    this.convert();
   }
 
   convert(): void {
@@ -136,6 +181,7 @@ export class AppComponent {
     this.isLoading = true;
     this.form.disable();
     const outputFormat = this.form.controls.outputFormat.getRawValue();
+    this.activeFormat = outputFormat;
 
     this.conversionService
       .convertDocument(this.selectedFile, outputFormat)
@@ -177,9 +223,11 @@ export class AppComponent {
 
   newConversion(): void {
     this.selectedFile = null;
-    this.form.reset({ outputFormat: 'markdown' });
+    this.form.reset({ outputFormat: 'pdf' });
     this.form.enable();
+    this.activeFormat = null;
     this.clearResult();
+    this.changeDetector.markForCheck();
   }
 
   formatLabel(format: OutputFormat): string {
@@ -201,7 +249,9 @@ export class AppComponent {
 
   private finishLoading(): void {
     this.isLoading = false;
+    this.activeFormat = null;
     this.form.enable();
+    this.changeDetector.markForCheck();
   }
 
   private readApiError(error: HttpErrorResponse): string {

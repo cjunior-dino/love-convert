@@ -53,17 +53,16 @@ describe('AppComponent', () => {
     fixture.detectChanges();
   });
 
-  it('inicia sem arquivo e com Markdown selecionado', () => {
+  it('inicia sem arquivo e com PDF como primeira saída', () => {
     expect(component.selectedFile).toBeNull();
-    expect(component.form.controls.outputFormat.value).toBe('markdown');
+    expect(component.form.controls.outputFormat.value).toBe('pdf');
     expect(component.result).toBeNull();
   });
 
-  it('mantém o botão desabilitado sem arquivo', () => {
-    const button = fixture.nativeElement.querySelector(
-      '[data-testid="convert-button"]',
-    ) as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
+  it('exibe a área de envio antes de selecionar um arquivo', () => {
+    expect(fixture.nativeElement.textContent).toContain(
+      'Arraste seu documento aqui',
+    );
   });
 
   it('aceita um arquivo DOCX válido', () => {
@@ -72,6 +71,7 @@ describe('AppComponent', () => {
     expect(component.selectedFile).toBe(file);
     expect(component.errorMessage).toBe('');
     expect(component.canConvert).toBe(true);
+    expect(component.availableFormats).toEqual(['pdf', 'html', 'markdown']);
   });
 
   it('aceita PDF e seleciona DOCX como saída', () => {
@@ -80,6 +80,17 @@ describe('AppComponent', () => {
     expect(component.selectedFile).toBe(file);
     expect(component.form.controls.outputFormat.value).toBe('docx');
     expect(component.errorMessage).toBe('');
+    expect(component.availableFormats).toEqual(['docx']);
+  });
+
+  it('converte ao escolher um dos formatos disponíveis', () => {
+    component.selectFile(new File(['docx'], 'documento.docx'));
+    component.selectOutputFormat('html');
+    fixture.detectChanges();
+
+    expect(component.form.controls.outputFormat.value).toBe('html');
+    expect(component.result?.output_format).toBe('markdown');
+    expect(fixture.nativeElement.textContent).toContain('Seu documento está pronto');
   });
 
   it('rejeita arquivo com extensão inválida', () => {
@@ -94,7 +105,7 @@ describe('AppComponent', () => {
     component.convert();
     fixture.detectChanges();
     expect(component.result?.content).toBe('# Conteúdo');
-    expect(fixture.nativeElement.textContent).toContain('Documento convertido');
+    expect(fixture.nativeElement.textContent).toContain('Seu documento está pronto');
   });
 
   it('oculta a prévia para resultados binários', () => {
