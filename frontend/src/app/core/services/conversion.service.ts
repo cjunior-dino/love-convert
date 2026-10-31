@@ -52,6 +52,10 @@ export class ConversionService {
   }
 
   absoluteDownloadUrl(downloadUrl: string): string {
-    return new URL(downloadUrl, this.apiBaseUrl).toString();
+    const parsedUrl = new URL(downloadUrl, this.apiBaseUrl);
+    return new URL(
+      `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`,
+      this.apiBaseUrl,
+    ).toString();
   }
 }

@@ -52,6 +52,15 @@ describe('ConversionService', () => {
     expect(result?.type).toBe('application/pdf');
   });
 
+  it('mantém o download na origem HTTPS atual quando a API retorna HTTP', () => {
+    const result = service.absoluteDownloadUrl(
+      'http://ilove-convert.online/api/conversions/download/id/output.pdf',
+    );
+    expect(result).toBe(
+      `${window.location.origin}/api/conversions/download/id/output.pdf`,
+    );
+  });
+
   it('repete a consulta até receber um estado final', () => {
     vi.useFakeTimers();
     const statuses: string[] = [];
