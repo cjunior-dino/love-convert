@@ -1,0 +1,17 @@
+<main class="page-shell process-page">
+  @if (!errorMessage) {
+    <section class="process-card" aria-live="polite" aria-busy="true">
+      <p class="process-card__eyebrow">Processamento seguro</p>
+      <h1>{{ progressTitle }}</h1>
+      <mat-spinner diameter="74" aria-label="Conversão em andamento"></mat-spinner>
+      <p>Você pode aguardar nesta página. O download será preparado assim que o arquivo estiver pronto.</p>
+    </section>
+  } @else {
+    <section class="process-card process-card--error" role="alert">
+      <div class="error-badge" aria-hidden="true">!</div>
+      <h1>Não foi possível concluir</h1>
+      <p>{{ errorMessage }}</p>
+      <a mat-flat-button routerLink="/">Tentar com outro arquivo</a>
+    </section>
+  }
+</main>

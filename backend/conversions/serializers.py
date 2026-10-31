@@ -16,10 +16,17 @@ class ConversionRequestSerializer(serializers.Serializer):
     output_format = serializers.ChoiceField(choices=Conversion.OutputFormat.values)
 
     def validate_file(self, uploaded_file):
-        if Path(uploaded_file.name).suffix.lower() not in ALLOWED_CONVERSIONS:
+        extension = Path(uploaded_file.name).suffix.lower()
+        if extension not in ALLOWED_CONVERSIONS:
             raise serializers.ValidationError("Apenas arquivos .docx e .pdf são aceitos.")
         if uploaded_file.size > MAX_FILE_SIZE:
             raise serializers.ValidationError("O arquivo deve ter no máximo 10 MB.")
+        signature = uploaded_file.read(5)
+        uploaded_file.seek(0)
+        if extension == ".pdf" and not signature.startswith(b"%PDF-"):
+            raise serializers.ValidationError("O conteúdo do arquivo PDF não é válido.")
+        if extension == ".docx" and not signature.startswith(b"PK"):
+            raise serializers.ValidationError("O conteúdo do arquivo DOCX não é válido.")
         return uploaded_file
 
     def validate(self, attrs):

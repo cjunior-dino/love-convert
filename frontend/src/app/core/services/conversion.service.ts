@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, switchMap, takeWhile, timer } from 'rxjs';
 
 import {
-  ConversionSuccessResponse,
+  ConversionDetail,
+  ConversionQueuedResponse,
   OutputFormat,
 } from '../models/conversion.models';
 
@@ -12,16 +13,37 @@ export class ConversionService {
   private readonly http = inject(HttpClient);
   private readonly apiBaseUrl = window.location.origin;
 
-  convertDocument(
+  enqueueConversion(
     file: File,
     outputFormat: OutputFormat,
-  ): Observable<ConversionSuccessResponse> {
+  ): Observable<ConversionQueuedResponse> {
     const formData = new FormData();
     formData.append('file', file, file.name);
     formData.append('output_format', outputFormat);
-    return this.http.post<ConversionSuccessResponse>(
+    return this.http.post<ConversionQueuedResponse>(
       '/api/conversions/',
       formData,
+    );
+  }
+
+  getConversion(conversionId: string): Observable<ConversionDetail> {
+    return this.http.get<ConversionDetail>(
+      `/api/conversions/${encodeURIComponent(conversionId)}/`,
+    );
+  }
+
+  watchConversion(
+    conversionId: string,
+    intervalMs = 1500,
+  ): Observable<ConversionDetail> {
+    return timer(0, intervalMs).pipe(
+      switchMap(() => this.getConversion(conversionId)),
+      takeWhile(
+        (conversion) =>
+          conversion.status === 'pending' ||
+          conversion.status === 'processing',
+        true,
+      ),
     );
   }
 

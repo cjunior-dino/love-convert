@@ -2,6 +2,24 @@
 
 Este documento reúne o histórico técnico, as decisões tomadas, o estado atual do projeto e os comandos necessários para continuar o desenvolvimento em outra máquina.
 
+## Estado atual — 30/10/2026
+
+Esta seção substitui as referências históricas a processamento síncrono e SQLite existentes mais abaixo no documento.
+
+- PostgreSQL é o único banco suportado; não existe fallback para SQLite.
+- Redis funciona apenas como fila e recebe identificadores, nunca o conteúdo dos documentos.
+- Celery processa as conversões fora da requisição HTTP.
+- Celery Beat remove arquivos expirados periodicamente.
+- Django, worker, beat, PostgreSQL, Redis, frontend e Caddy executam em contêineres separados.
+- Backend, worker e beat compartilham o volume temporário `conversion_files`.
+- O frontend possui páginas separadas para seleção, processamento e download.
+- A página final tenta baixar o arquivo automaticamente e mantém um botão manual.
+- PDF para DOCX é identificado na interface como **sem OCR**.
+- Os testes foram organizados em `backend/tests/`, `backend/conversions/tests/` e `frontend/src/app/tests/`.
+- A validação atual possui 28 testes de backend e 15 testes de frontend aprovados.
+
+Para configuração, execução, API e comandos atualizados, consulte o `README.md` da raiz.
+
 ## Objetivo do projeto
 
 O LoveConvert é uma aplicação web para conversão local de documentos, composta por:

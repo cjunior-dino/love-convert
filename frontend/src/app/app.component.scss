@@ -11,6 +11,19 @@
   color: var(--ink);
 }
 
+app-root {
+  --ink: #13213c;
+  --muted: #66758f;
+  --line: #d9e2ee;
+  --blue: #2f80ed;
+  --teal: #10b7a5;
+  --green: #22b866;
+  --coral: #ff5c50;
+  display: block;
+  min-height: 100vh;
+  color: var(--ink);
+}
+
 .topbar {
   position: relative;
   z-index: 10;
@@ -378,6 +391,7 @@ p {
 }
 
 .format-card {
+  position: relative;
   min-width: 0;
   min-height: 280px;
   padding: 26px 16px 16px;
@@ -391,6 +405,21 @@ p {
   cursor: pointer;
   font: inherit;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.format-card__badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 5px 8px;
+  color: #087f72;
+  border: 1px solid #a9e7df;
+  border-radius: 999px;
+  background: #eafaf7;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .format-card:hover:not(:disabled),
@@ -743,6 +772,95 @@ p {
 .new-button {
   margin-top: 22px;
   color: var(--blue) !important;
+}
+
+.process-page,
+.result-page-shell {
+  min-height: calc(100vh - 145px);
+  display: grid;
+  place-items: center;
+}
+
+.process-card {
+  width: min(680px, 100%);
+  padding: 58px 32px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  border: 1px solid #d5dfeb;
+  border-radius: 22px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 22px 65px rgb(41 73 108 / 11%);
+  text-align: center;
+}
+
+.process-card__eyebrow {
+  margin-bottom: 12px;
+  color: var(--teal);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.process-card h1 {
+  margin-bottom: 30px;
+  color: var(--ink);
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+
+.process-card mat-spinner {
+  margin-bottom: 30px;
+}
+
+.process-card p:last-child {
+  max-width: 520px;
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.process-card--error h1 {
+  margin-bottom: 12px;
+}
+
+.process-card--error p {
+  margin-bottom: 24px !important;
+}
+
+.process-card--error a[mat-flat-button],
+.download-button {
+  min-height: 48px;
+  padding: 0 24px !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+  background: var(--blue) !important;
+  font-weight: 800;
+}
+
+.error-badge {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 18px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  border-radius: 50%;
+  background: var(--coral);
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.result-card--download {
+  margin-top: 8px;
+}
+
+.download-hint {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 footer {

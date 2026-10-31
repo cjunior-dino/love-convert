@@ -7,7 +7,6 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_DEBUG=false \
-    DJANGO_DB_PATH=/app/data/db.sqlite3 \
     DJANGO_MEDIA_ROOT=/app/media \
     DJANGO_STATIC_ROOT=/app/staticfiles
 
@@ -35,7 +34,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
 COPY backend/ ./
 
 RUN python manage.py collectstatic --noinput \
-    && mkdir -p /app/data /app/media \
+    && mkdir -p /app/media \
     && groupadd --system app \
     && useradd --system --gid app --home-dir /app app \
     && chown -R app:app /app
@@ -44,7 +43,7 @@ USER app
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 180 --access-logfile - --error-logfile -"]
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-"]
 
 FROM node:22-alpine AS frontend-build
 

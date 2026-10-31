@@ -1,0 +1,127 @@
+<main id="main" class="page-shell">
+  <section class="hero" aria-labelledby="page-title">
+    <h1 id="page-title">
+      Converta qualquer documento
+      <span>com poucos cliques</span>
+    </h1>
+    <p>Envie seu arquivo e escolha um dos formatos disponíveis.</p>
+  </section>
+
+  <section class="converter" aria-label="Conversor de documentos">
+    <input
+      #fileInput
+      class="visually-hidden"
+      type="file"
+      accept=".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      (change)="onFileInput($event)"
+    />
+
+    @if (!selectedFile) {
+      <div
+        class="dropzone"
+        [class.dropzone--active]="isDragging"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        <span class="upload-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 16V5m0 0L8 9m4-4 4 4"></path>
+            <path d="M5 14v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"></path>
+          </svg>
+        </span>
+        <h2>Arraste seu documento aqui</h2>
+        <p>Arquivos DOCX ou PDF de até 10 MB</p>
+        <button mat-flat-button type="button" (click)="fileInput.click()">
+          Selecionar arquivo
+        </button>
+      </div>
+    } @else {
+      <div
+        class="selected-file"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        <span class="document-icon document-icon--input" aria-hidden="true">
+          {{ selectedFileType }}
+        </span>
+        <div class="selected-file__details">
+          <strong>{{ selectedFile.name }}</strong>
+          <span>Documento {{ selectedFileType }} · {{ selectedFileSize }}</span>
+        </div>
+        <span class="selected-file__check" aria-label="Arquivo válido">✓</span>
+        <button
+          class="change-file"
+          mat-button
+          type="button"
+          (click)="fileInput.click()"
+          [disabled]="isLoading"
+        >
+          <span aria-hidden="true">↻</span> Trocar arquivo
+        </button>
+      </div>
+
+      <section class="format-section" aria-labelledby="format-title">
+        <div class="section-heading">
+          <h2 id="format-title">Converter para</h2>
+          <p>Escolha o formato de saída disponível para este arquivo.</p>
+        </div>
+
+        @if (errorMessage) {
+          <div class="message message--error" role="alert">{{ errorMessage }}</div>
+        }
+
+        <div
+          class="format-grid"
+          [class.format-grid--single]="availableFormats.length === 1"
+          [attr.aria-busy]="isLoading"
+        >
+          @for (format of availableFormats; track format) {
+            <button
+              class="format-card format-card--{{ format }}"
+              type="button"
+              (click)="selectOutputFormat(format)"
+              [disabled]="isLoading"
+              [attr.aria-label]="formatOptions[format].action"
+            >
+              @if (format === 'docx') {
+                <span class="format-card__badge">Sem OCR</span>
+              }
+              <span class="format-card__icon" aria-hidden="true">
+                {{ formatOptions[format].shortLabel }}
+              </span>
+              <strong>{{ formatLabel(format) }}</strong>
+              <span class="format-card__description">
+                {{ formatOptions[format].description }}
+              </span>
+              <span class="format-card__action">
+                @if (isLoading && activeFormat === format) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                  Enviando…
+                } @else {
+                  {{ formatOptions[format].action }} <i aria-hidden="true">→</i>
+                }
+              </span>
+            </button>
+          }
+        </div>
+      </section>
+    }
+  </section>
+
+  <div id="privacy" class="trust-row" aria-label="Privacidade e segurança">
+    <span>✓ Processamento seguro</span>
+    <span>♲ Arquivos excluídos automaticamente</span>
+    <span>Sem cadastro</span>
+  </div>
+
+  <section id="how-it-works" class="how-it-works" aria-labelledby="how-title">
+    <h2 id="how-title">Como funciona</h2>
+    <ol>
+      <li><b>1</b><span><strong>Envie seu arquivo</strong><small>Arraste ou selecione um DOCX ou PDF.</small></span></li>
+      <li><b>2</b><span><strong>Escolha o formato</strong><small>Veja somente as conversões compatíveis.</small></span></li>
+      <li><b>3</b><span><strong>Converta e baixe</strong><small>Receba o arquivo pronto em poucos instantes.</small></span></li>
+    </ol>
+  </section>
+</main>

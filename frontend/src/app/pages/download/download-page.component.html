@@ -1,0 +1,44 @@
+<main class="page-shell result-page-shell">
+  @if (conversion) {
+    <section class="result-page" aria-labelledby="result-title">
+      <div class="success-badge" aria-hidden="true">✓</div>
+      <p class="result-page__eyebrow">Conversão concluída</p>
+      <h1 id="result-title">Seu documento está pronto</h1>
+      <p class="result-page__description" role="status">
+        O download será iniciado automaticamente. Se isso não acontecer, use o botão abaixo.
+      </p>
+
+      <div class="result-card result-card--download">
+        <div class="result-card__file">
+          <span class="document-icon document-icon--result" aria-hidden="true">
+            {{ outputLabel }}
+          </span>
+          <div>
+            <strong>{{ conversion.original_name }}</strong>
+            <span>Convertido para {{ outputLabel }}</span>
+          </div>
+        </div>
+        <a mat-flat-button class="download-button" [href]="downloadUrl">
+          ↓ Baixar {{ outputLabel }}
+        </a>
+      </div>
+
+      @if (automaticDownloadAttempted) {
+        <p class="download-hint">A tentativa de download automático foi realizada.</p>
+      }
+
+      <a mat-button class="new-button" routerLink="/">← Converter outro arquivo</a>
+    </section>
+  } @else if (errorMessage) {
+    <section class="process-card process-card--error" role="alert">
+      <div class="error-badge" aria-hidden="true">!</div>
+      <h1>Arquivo indisponível</h1>
+      <p>{{ errorMessage }}</p>
+      <a mat-flat-button routerLink="/">Iniciar outra conversão</a>
+    </section>
+  } @else {
+    <section class="process-card" aria-live="polite">
+      <h1>Preparando o download…</h1>
+    </section>
+  }
+</main>

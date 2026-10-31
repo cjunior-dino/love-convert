@@ -1,363 +1,318 @@
 # LoveConvert
 
-Aplicação full stack local para converter documentos `.docx` em Markdown (GFM), HTML ou PDF e arquivos `.pdf` em DOCX. O frontend Angular oferece upload por clique ou arrastar e soltar, validação, progresso, prévia segura para formatos de texto e download. O backend Django executa as conversões de forma síncrona, registra o estado no SQLite e isola cada conversão em um diretório UUID.
+Aplicação web para converter documentos DOCX em PDF, HTML ou Markdown e arquivos PDF em DOCX. As conversões são processadas em segundo plano por Celery, com Redis como fila e PostgreSQL como banco de dados.
 
-## Pré-requisitos
+O fluxo da interface possui três páginas:
 
-- Windows 10 ou 11 com PowerShell, WSL 2 ou Linux;
-- Python 3.10 ou superior;
-- Node.js 22 LTS ou superior e npm;
-- Pandoc disponível no `PATH`;
-- LibreOffice Writer disponível no `PATH` para DOCX → PDF.
+1. envio do arquivo e escolha do formato;
+2. acompanhamento do processamento;
+3. download, com uma tentativa automática e botão manual como alternativa.
 
-Para executar todas as conversões, prefira iniciar o backend pelo WSL/Linux. O LibreOffice é chamado em modo headless, sem abrir janelas ou acessar a interface de impressão.
+A conversão de PDF para Word é feita **sem OCR**. PDFs compostos somente por imagens podem gerar um DOCX sem texto editável.
 
-Confirme as instalações:
+## Arquitetura
 
-```powershell
-python --version
-node --version
-npm.cmd --version
-pandoc --version
-libreoffice --version
+```text
+Caddy
+  └── Frontend Angular / Nginx
+        └── Backend Django / Gunicorn
+              ├── PostgreSQL: metadados e status
+              ├── Redis: fila de identificadores
+              └── Celery Worker: conversões
+
+Celery Beat
+  └── limpeza periódica de arquivos expirados
 ```
 
-Se o Python ainda não estiver instalado:
+Os arquivos não passam pelo Redis. O backend salva o upload no volume `conversion_files`, envia somente o UUID ao Redis e o worker usa o UUID para localizar o registro e o arquivo.
 
-```powershell
-winget install --id Python.Python.3.12
-```
+## Formatos disponíveis
 
-Feche e reabra o PowerShell depois de instalar programas com o `winget`.
+| Entrada | Saída | Ferramenta |
+|---|---|---|
+| DOCX | PDF | LibreOffice Writer headless |
+| DOCX | HTML | Pandoc |
+| DOCX | Markdown | Pandoc |
+| PDF | DOCX sem OCR | pdf2docx |
 
-## Instalação do backend
-
-Partindo da raiz do projeto:
-
-```powershell
-cd backend
-
-python -m venv .venv
-
-.\.venv\Scripts\Activate.ps1
-
-python -m pip install -r requirements.txt
-
-python manage.py migrate
-
-python manage.py runserver
-```
-
-Se a política do PowerShell impedir a ativação do ambiente virtual, use os executáveis diretamente:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe manage.py migrate
-.\.venv\Scripts\python.exe manage.py runserver
-```
-
-O backend ficará disponível em [http://localhost:8000/api/conversions/](http://localhost:8000/api/conversions/).
-
-### Backend no WSL ou Ubuntu
-
-No Ubuntu/WSL, instale primeiro as dependências do sistema:
-
-```bash
-sudo apt update
-sudo apt install -y python3-venv python3-pip pandoc \
-  libreoffice-writer fonts-dejavu fonts-liberation2 fonts-crosextra-carlito
-```
-
-O LibreOffice usa as fontes instaladas no servidor. Se os documentos utilizarem Arial, Times New Roman ou outras fontes Microsoft, instale também o pacote abaixo para evitar alterações nas quebras de linha e na quantidade de páginas:
-
-```bash
-sudo apt install ttf-mscorefonts-installer
-sudo fc-cache -f
-```
-
-Esse pacote pode solicitar a aceitação da licença das fontes durante a instalação.
-
-Depois, partindo da raiz do projeto:
-
-```bash
-cd backend
-python3 -m venv ~/.venvs/love-convert
-source ~/.venvs/love-convert/bin/activate
-python -m pip install -r requirements.txt
-libreoffice --version
-python manage.py migrate
-python manage.py runserver 0.0.0.0:8000
-```
-
-## Instalação do Pandoc
-
-```powershell
-winget install --id JohnMacFarlane.Pandoc
-```
-
-Abra um novo PowerShell e verifique:
-
-```powershell
-pandoc --version
-```
-
-Sem o Pandoc, o servidor inicia normalmente, mas conversões retornam uma mensagem clara informando que o executável não foi encontrado.
-
-## Conversores
-
-A conversão de DOCX para PDF usa diretamente o LibreOffice Writer em modo headless. Markdown e HTML usam Pandoc. A conversão de PDF para DOCX usa `pdf2docx`, instalado automaticamente com `requirements.txt`.
+O limite padrão de upload é 10 MB.
 
 ## Execução com Docker
 
-O `Dockerfile` possui dois alvos: `backend`, com Django, Gunicorn, Pandoc e LibreOffice, e `frontend`, com o build Angular servido pelo Nginx. O `docker-compose.yml` conecta os serviços, executa as migrações, mantém o banco e os arquivos convertidos em volumes persistentes e usa Caddy como entrada pública com HTTPS automático.
+### Pré-requisitos
 
-Na raiz do projeto, crie a configuração local:
+- Docker Engine com Docker Compose;
+- portas 80 e 443 disponíveis para implantação pública;
+- DNS apontando para a VPS quando um domínio for utilizado.
+
+Crie o arquivo local de configuração:
 
 ```bash
 cp .env.example .env
 ```
 
-Gere uma chave e coloque o valor em `DJANGO_SECRET_KEY` dentro do arquivo `.env`:
+Preencha pelo menos estas variáveis:
+
+```env
+APP_SITE=http://localhost
+DJANGO_SECRET_KEY=troque-por-uma-chave-longa-e-aleatoria
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost
+POSTGRES_DB=loveconvert
+POSTGRES_USER=loveconvert
+POSTGRES_PASSWORD=troque-por-uma-senha-longa-e-aleatoria
+CONVERSION_RETENTION_MINUTES=60
+```
+
+Uma chave do Django pode ser gerada com:
 
 ```bash
 python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
-No mesmo arquivo, substitua `seu-dominio.com` pelo domínio ou endereço IP da VPS. Para uma instalação apenas local, mantenha `APP_SITE=http://localhost` e `localhost,127.0.0.1` nos hosts permitidos.
-
-Exemplo para produção em `ilove-convert.online`:
-
-```env
-APP_SITE=ilove-convert.online
-DJANGO_SECRET_KEY=troque-por-uma-chave-longa-e-aleatoria
-DJANGO_ALLOWED_HOSTS=ilove-convert.online
-DJANGO_CSRF_TRUSTED_ORIGINS=https://ilove-convert.online
-```
-
-O DNS do domínio deve apontar para o IP público da VPS e as portas TCP 80 e 443 e UDP 443 precisam estar liberadas. O Caddy obtém e renova o certificado TLS automaticamente.
-
-Construa e inicie os contêineres:
+Inicie o ambiente:
 
 ```bash
-docker compose build
-docker compose up -d
+docker compose up -d --build
 docker compose ps
 ```
 
-A aplicação ficará disponível no endereço definido por `APP_SITE`. Para acompanhar o backend e o proxy HTTPS:
+O Compose inicia:
+
+- `postgres`: banco persistente;
+- `redis`: fila interna sem porta pública;
+- `migrate`: aplica migrations e encerra;
+- `backend`: API Django;
+- `worker`: Celery com uma conversão simultânea;
+- `beat`: agenda a limpeza automática;
+- `frontend`: Angular servido pelo Nginx;
+- `caddy`: entrada HTTP/HTTPS.
+
+Logs úteis:
 
 ```bash
-docker compose logs -f backend
-docker compose logs -f caddy
+docker compose logs -f backend worker beat
+docker compose logs -f postgres redis
+docker compose logs -f frontend caddy
 ```
 
-Depois de alterar o código, atualize o ambiente com:
+Atualização após alterações:
 
 ```bash
 docker compose up -d --build
 ```
 
-Para interromper os serviços sem apagar os documentos e o banco:
+Parar sem apagar dados:
 
 ```bash
 docker compose down
 ```
 
-Os volumes `database_data`, `conversion_files`, `caddy_data` e `caddy_config` são mantidos pelo Docker. O comando `docker compose down -v` também apaga esses volumes e deve ser usado apenas quando os dados não forem mais necessários.
+O comando abaixo também remove PostgreSQL, arquivos temporários e dados do Caddy. Use somente quando esses dados puderem ser descartados:
 
-### Fontes no contêiner
+```bash
+docker compose down -v
+```
 
-A imagem inclui Liberation Sans, Liberation Serif, Carlito e Caladea como alternativas métricas para Arial, Times New Roman, Calibri, Aptos e Cambria. Para máxima fidelidade, coloque arquivos de fontes devidamente licenciados em `docker/fonts/` antes de construir a imagem e execute novamente `docker compose up -d --build`.
+## Volumes
 
-## Instalação do frontend
+- `postgres_data`: banco PostgreSQL;
+- `conversion_files`: uploads e resultados temporários;
+- `caddy_data`: certificados e dados do Caddy;
+- `caddy_config`: configuração persistente do Caddy.
 
-Em outro PowerShell, partindo da raiz do projeto:
+Backend, worker e beat compartilham apenas `conversion_files`. A pasta não é publicada diretamente pelo Nginx; o download passa por um endpoint que valida UUID, estado e caminho físico.
 
-```powershell
+Por padrão, os documentos expiram após 60 minutos. A rotina periódica remove os arquivos e marca o registro como expirado.
+
+## Desenvolvimento do frontend
+
+```bash
 cd frontend
-
-npm.cmd install
-
-npm.cmd start
+npm install
+npm start
 ```
 
-O frontend ficará disponível em [http://localhost:4200](http://localhost:4200). O CORS do backend aceita essa origem local.
+O frontend fica em `http://localhost:4200` e encaminha `/api` para o backend conforme `proxy.conf.json`.
 
-## Como usar
+## Desenvolvimento do backend
 
-1. Inicie o backend e o frontend em dois terminais.
-2. Abra `http://localhost:4200`.
-3. Arraste um arquivo `.docx` ou `.pdf` para a área indicada ou clique em **Selecionar arquivo**.
-4. Para DOCX, escolha **Markdown**, **HTML** ou **PDF**. Para PDF, a saída DOCX é selecionada automaticamente.
-5. Clique em **Converter documento**.
-6. Confira o código ou a visualização renderizada, copie o conteúdo ou baixe o resultado.
-7. Clique em **Nova conversão** para recomeçar.
+O backend não possui fallback para SQLite. PostgreSQL e Redis precisam estar disponíveis.
 
-O arquivo deve ter no máximo 10 MB. A prévia renderizada é sanitizada com DOMPurify e exibida em um `iframe` com sandbox.
+Para executar somente PostgreSQL e Redis em contêineres, expondo-os exclusivamente no computador local:
 
-## Teste manual da API
-
-Com o backend em execução:
-
-```powershell
-$form = @{
-  file = Get-Item -LiteralPath "C:\caminho\documento.docx"
-  output_format = "markdown"
-}
-
-Invoke-RestMethod `
-  -Uri "http://localhost:8000/api/conversions/" `
-  -Method Post `
-  -Form $form
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d postgres redis
 ```
 
-Uma resposta bem-sucedida contém `content` e uma `download_url`. Em saídas PDF ou DOCX, `content` é `null` e o arquivo fica disponível pela URL de download.
+O arquivo `docker-compose.local.yml` publica PostgreSQL em `127.0.0.1:5432` e Redis em `127.0.0.1:6379`. Essas portas não são publicadas pela configuração de produção.
 
-## Testes automatizados
+No WSL ou Ubuntu:
 
-Backend:
-
-```powershell
+```bash
 cd backend
-.\.venv\Scripts\python.exe manage.py test -v 2
-.\.venv\Scripts\python.exe manage.py check
-.\.venv\Scripts\python.exe manage.py makemigrations --check --dry-run
+python3 -m venv .venv-wsl
+source .venv-wsl/bin/activate
+python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver 0.0.0.0:8000
 ```
 
-Os testes cobrem validações de arquivo e formato, limite de tamanho, Markdown, HTML, PDF, DOCX, dependências ausentes, falhas de conversão, download inexistente, path traversal, armazenamento seguro e CORS.
+Em outro terminal, inicie o worker:
 
-Frontend:
-
-```powershell
-cd frontend
-npm.cmd test
-npm.cmd run build
+```bash
+cd backend
+source .venv-wsl/bin/activate
+celery -A config worker --loglevel=INFO --concurrency=1
 ```
 
-Os testes cobrem o estado inicial, botão desabilitado, seleção e rejeição de arquivo, `FormData`, resultado e erros da API.
+Para a limpeza periódica:
+
+```bash
+cd backend
+source .venv-wsl/bin/activate
+celery -A config beat --loglevel=INFO
+```
+
+Variáveis usadas fora do Docker:
+
+```env
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=loveconvert
+POSTGRES_USER=loveconvert
+POSTGRES_PASSWORD=sua-senha
+CELERY_BROKER_URL=redis://localhost:6379/0
+```
+
+## Fluxo assíncrono
+
+1. O frontend envia o arquivo.
+2. Django valida extensão, assinatura e tamanho.
+3. O upload é salvo com nome interno fixo em um diretório UUID.
+4. PostgreSQL recebe um registro com status `pending`.
+5. Redis recebe somente o UUID.
+6. O worker atualiza o status para `processing` e converte.
+7. O resultado é salvo no volume e o status muda para `completed` ou `failed`.
+8. A página de processamento consulta o status e redireciona para download.
+
+Uma tarefa pode ser retomada após a perda do worker. O número de inícios é limitado a três para impedir reenfileiramento infinito.
 
 ## API
 
-### `POST /api/conversions/`
+### Criar conversão
 
-Recebe `multipart/form-data`:
+```http
+POST /api/conversions/
+Content-Type: multipart/form-data
+```
 
-- `file`: arquivo `.docx` ou `.pdf`, obrigatório e limitado a 10 MB;
-- `output_format`: `markdown`, `html` ou `pdf` para entrada DOCX; `docx` para entrada PDF.
+Campos:
 
-Exemplo de sucesso (`201 Created`):
+- `file`: DOCX ou PDF;
+- `output_format`: `pdf`, `html`, `markdown` ou `docx`, conforme a entrada.
+
+Resposta `202 Accepted`:
 
 ```json
 {
   "success": true,
-  "original_name": "documento.docx",
-  "output_format": "markdown",
-  "content": "# Conteúdo convertido",
-  "download_url": "/api/conversions/download/8a62cdb0-3e87-4ef8-a192-b598a87c777b/output.md"
+  "conversion_id": "7f77efb7-8e55-45c1-a26f-fe2acf699fa4",
+  "status": "pending",
+  "status_url": "https://exemplo.com/api/conversions/7f77efb7-8e55-45c1-a26f-fe2acf699fa4/"
 }
 ```
 
-Erros de validação retornam `400`, erros de conversão retornam `422`, dependências ausentes retornam `503` e falhas inesperadas retornam `500`. A API nunca envia stack traces no corpo da resposta.
+### Consultar status
 
-### `GET /api/conversions/download/{conversion_id}/{filename}`
-
-Baixa apenas `output.md`, `output.html`, `output.pdf` ou `output.docx` associados a uma conversão concluída. UUID, nome fixo, diretório resolvido e existência do arquivo são validados antes do envio.
-
-## Estrutura do projeto
-
-```text
-love-convert/
-├── Dockerfile
-├── docker-compose.yml
-├── .dockerignore
-├── .env.example
-├── docker/
-│   ├── nginx.conf
-│   ├── fontconfig-local.conf
-│   └── fonts/
-├── backend/
-│   ├── config/
-│   │   ├── settings.py
-│   │   ├── urls.py
-│   │   ├── asgi.py
-│   │   └── wsgi.py
-│   ├── conversions/
-│   │   ├── migrations/0001_initial.py
-│   │   ├── services/pandoc_converter.py
-│   │   ├── tests/
-│   │   │   ├── test_api.py
-│   │   │   └── test_pandoc_converter.py
-│   │   ├── exceptions.py
-│   │   ├── models.py
-│   │   ├── serializers.py
-│   │   ├── urls.py
-│   │   └── views.py
-│   ├── manage.py
-│   └── requirements.txt
-├── frontend/
-│   ├── public/favicon.svg
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── core/
-│   │   │   │   ├── models/conversion.models.ts
-│   │   │   │   └── services/
-│   │   │   │       ├── conversion.service.ts
-│   │   │   │       ├── file-selection.service.ts
-│   │   │   │       └── preview.service.ts
-│   │   │   ├── app.component.html
-│   │   │   ├── app.component.scss
-│   │   │   ├── app.component.spec.ts
-│   │   │   └── app.component.ts
-│   │   ├── index.html
-│   │   ├── main.ts
-│   │   └── styles.scss
-│   ├── angular.json
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── tsconfig.app.json
-│   ├── tsconfig.json
-│   └── tsconfig.spec.json
-├── .gitignore
-└── README.md
+```http
+GET /api/conversions/{conversion_id}/
 ```
 
-Durante o uso, o Django cria esta estrutura, ignorada pelo Git:
+Quando concluída, a resposta inclui `download_url`. Para HTML e Markdown, inclui também `content`.
 
-```text
-backend/media/conversions/{uuid}/
-├── input.docx ou input.pdf
-├── output.md, output.html, output.pdf ou output.docx
-└── media/
+### Baixar resultado
+
+```http
+GET /api/conversions/download/{conversion_id}/{filename}
 ```
 
-O nome original é mantido apenas como metadado. O armazenamento usa UUID e nomes internos fixos.
+O download só é permitido para conversões concluídas e arquivos localizados no diretório esperado.
 
-## Decisões técnicas
+### Saúde
 
-- Conversão síncrona por ser uma primeira versão local, sem a complexidade de filas.
-- Serviço Pandoc separado da view, executado com lista de argumentos, `shell=False` implícito, timeout, captura de saída e verificação de retorno.
-- PDF exportado diretamente pelo LibreOffice Writer em modo headless, com perfil isolado por conversão e sem interface gráfica.
-- Imagem Docker separada em alvos de backend e frontend, com proxy reverso do Nginx e persistência em volumes nomeados.
-- SQLite guarda status `pending`, `processing`, `completed` ou `failed`, além dos metadados e da mensagem de erro.
-- Angular 21 standalone com Reactive Forms, HttpClient, Angular Material e tipagem discriminada das respostas.
-- Sanitização explícita antes da prévia e isolamento adicional por `iframe sandbox`.
-- URLs do backend centralizadas no serviço Angular para facilitar uma futura configuração por ambiente.
+```http
+GET /api/health/
+```
 
-## Limitações desta versão
+Retorna `200` quando Django consegue consultar o PostgreSQL.
 
-- O processamento é síncrono e ocupa a requisição até terminar.
-- Os arquivos permanecem localmente até serem removidos manualmente.
-- Não há autenticação, histórico na interface ou rotina automática de expiração.
-- Em Markdown e HTML, imagens extraídas pelo Pandoc ficam no diretório `media/`, mas esta versão não oferece um pacote ZIP nem uma rota pública para elas. Na saída PDF, os recursos são incorporados antes da limpeza dos arquivos intermediários.
-- A aplicação foi projetada para um único usuário local, não para exposição direta na internet.
+## Testes
 
-## Melhorias futuras
+### Backend com PostgreSQL
 
-- Limpeza automática de conversões antigas;
-- download em ZIP com imagens e conteúdo;
-- prévia de mídias extraídas;
-- barra de progresso e cancelamento;
-- configuração de URL da API por ambiente;
-- fila assíncrona para conversões maiores;
-- testes de ponta a ponta com navegador;
-- endurecimento das configurações para uma implantação em rede.
+Com o ambiente Docker configurado:
+
+```bash
+docker compose up -d postgres redis
+docker compose run --rm migrate
+docker compose run --rm backend python manage.py test -v 2
+docker compose run --rm backend python manage.py makemigrations --check --dry-run
+```
+
+Os testes ficam em:
+
+- `backend/conversions/tests/`: API, conversores e tarefas Celery;
+- `backend/tests/`: verificações gerais do projeto.
+
+### Frontend
+
+```bash
+cd frontend
+npm test
+npm run build
+```
+
+Os testes ficam em `frontend/src/app/tests/` e cobrem seleção, aviso sem OCR, envio, rotas, polling, erros, download automático e botão manual.
+
+## Fontes e fidelidade visual
+
+A imagem inclui Liberation Sans, Liberation Serif, Carlito e Caladea como alternativas para Arial, Times New Roman, Calibri, Aptos e Cambria. Fontes licenciadas adicionais podem ser colocadas em `docker/fonts/` antes da construção.
+
+A aparência do PDF depende das fontes e do mecanismo de renderização. O LibreOffice é utilizado para preservar o layout do DOCX com maior fidelidade no ambiente Linux.
+
+## Estrutura principal
+
+```text
+backend/
+├── config/
+│   ├── celery.py
+│   ├── health.py
+│   └── settings.py
+├── conversions/
+│   ├── migrations/
+│   ├── services/
+│   ├── tests/
+│   ├── models.py
+│   ├── tasks.py
+│   └── views.py
+└── tests/
+
+frontend/src/app/
+├── core/
+├── pages/
+│   ├── home/
+│   ├── loading/
+│   └── download/
+├── tests/
+└── app.routes.ts
+```
+
+## Segurança operacional
+
+- Redis e PostgreSQL não publicam portas para a internet.
+- Os arquivos usam UUID e nomes internos controlados.
+- O conteúdo básico de PDF e DOCX é validado antes do armazenamento.
+- O worker executa uma conversão por vez e possui limites de tempo e memória.
+- Credenciais ficam no `.env`, que não deve ser enviado ao repositório.
+- O volume de conversões não deve ser incluído em backups permanentes.

@@ -17,6 +17,7 @@
     "@angular/forms": "^21.2.0",
     "@angular/material": "^21.2.0",
     "@angular/platform-browser": "^21.2.0",
+    "@angular/router": "^21.2.19",
     "dompurify": "^3.3.0",
     "marked": "^17.0.0",
     "rxjs": "~7.8.0",

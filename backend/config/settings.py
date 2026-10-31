@@ -60,8 +60,14 @@ ASGI_APPLICATION = "config.asgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": Path(os.getenv("DJANGO_DB_PATH", BASE_DIR / "db.sqlite3")),
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "loveconvert"),
+        "USER": os.getenv("POSTGRES_USER", "loveconvert"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "loveconvert"),
+        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        "CONN_MAX_AGE": int(os.getenv("POSTGRES_CONN_MAX_AGE", "60")),
+        "OPTIONS": {"connect_timeout": 5},
     }
 }
 
@@ -90,3 +96,26 @@ REST_FRAMEWORK = {
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 11 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 11 * 1024 * 1024
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = None
+CELERY_TASK_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_TASK_TIME_LIMIT = int(os.getenv("CELERY_TASK_TIME_LIMIT", "600"))
+CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv("CELERY_TASK_SOFT_TIME_LIMIT", "540"))
+CELERY_BEAT_SCHEDULE = {
+    "cleanup-expired-conversions": {
+        "task": "conversions.cleanup_expired_conversions",
+        "schedule": 900.0,
+    }
+}
+
+CONVERSION_RETENTION_MINUTES = int(
+    os.getenv("CONVERSION_RETENTION_MINUTES", "60")
+)

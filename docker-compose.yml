@@ -1,50 +1,164 @@
+x-backend-environment: &backend-environment
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Defina DJANGO_SECRET_KEY no arquivo .env}
+  DJANGO_DEBUG: "false"
+  DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+  DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-}
+  DJANGO_MEDIA_ROOT: /app/media
+  DJANGO_STATIC_ROOT: /app/staticfiles
+  POSTGRES_DB: ${POSTGRES_DB:-loveconvert}
+  POSTGRES_USER: ${POSTGRES_USER:-loveconvert}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_TASK_TIME_LIMIT: ${CELERY_TASK_TIME_LIMIT:-600}
+  CELERY_TASK_SOFT_TIME_LIMIT: ${CELERY_TASK_SOFT_TIME_LIMIT:-540}
+  CONVERSION_RETENTION_MINUTES: ${CONVERSION_RETENTION_MINUTES:-60}
+
+x-backend-image: &backend-image
+  build:
+    context: .
+    target: backend
+  image: loveconvert-backend
+  init: true
+  environment: *backend-environment
+
 services:
-  backend:
-    build:
-      context: .
-      target: backend
-    init: true
+  postgres:
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Defina DJANGO_SECRET_KEY no arquivo .env}
-      DJANGO_DEBUG: "false"
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
-      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-}
-      DJANGO_DB_PATH: /app/data/db.sqlite3
-      DJANGO_MEDIA_ROOT: /app/media
-      DJANGO_STATIC_ROOT: /app/staticfiles
+      POSTGRES_DB: ${POSTGRES_DB:-loveconvert}
+      POSTGRES_USER: ${POSTGRES_USER:-loveconvert}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
     volumes:
-      - database_data:/app/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 10s
+    mem_limit: 512m
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "96mb", "--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+    mem_limit: 128m
+
+  migrate:
+    <<: *backend-image
+    restart: "no"
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    <<: *backend-image
+    restart: unless-stopped
+    command:
+      - gunicorn
+      - config.wsgi:application
+      - --bind
+      - 0.0.0.0:8000
+      - --workers
+      - "2"
+      - --timeout
+      - "60"
+      - --access-logfile
+      - "-"
+      - --error-logfile
+      - "-"
+    volumes:
       - conversion_files:/app/media
     expose:
       - "8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     healthcheck:
-      test:
-        - CMD
-        - python
-        - -c
-        - import socket; connection = socket.create_connection(('127.0.0.1', 8000), 2); connection.close()
-      interval: 10s
-      timeout: 3s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/', timeout=3)"]
+      interval: 15s
+      timeout: 5s
       retries: 6
       start_period: 20s
+    mem_limit: 512m
+
+  worker:
+    <<: *backend-image
+    restart: unless-stopped
+    command:
+      - celery
+      - -A
+      - config
+      - worker
+      - --loglevel=INFO
+      - --concurrency=1
+      - --prefetch-multiplier=1
+      - --max-tasks-per-child=20
+    volumes:
+      - conversion_files:/app/media
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    stop_grace_period: 10m
+    mem_limit: 1g
+
+  beat:
+    <<: *backend-image
+    restart: unless-stopped
+    command:
+      - celery
+      - -A
+      - config
+      - beat
+      - --loglevel=INFO
+      - --schedule=/tmp/celerybeat-schedule
+    volumes:
+      - conversion_files:/app/media
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    mem_limit: 192m
 
   frontend:
     build:
       context: .
       target: frontend
+    image: loveconvert-frontend
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     expose:
       - "80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    mem_limit: 128m
 
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     depends_on:
-      - frontend
+      frontend:
+        condition: service_healthy
     environment:
       APP_SITE: ${APP_SITE:-http://localhost}
     ports:
@@ -55,9 +169,10 @@ services:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    mem_limit: 128m
 
 volumes:
-  database_data:
+  postgres_data:
   conversion_files:
   caddy_data:
   caddy_config:
