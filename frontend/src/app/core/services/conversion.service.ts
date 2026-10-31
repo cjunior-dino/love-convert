@@ -32,6 +32,10 @@ export class ConversionService {
     );
   }
 
+  downloadFile(downloadUrl: string): Observable<Blob> {
+    return this.http.get(downloadUrl, { responseType: 'blob' });
+  }
+
   watchConversion(
     conversionId: string,
     intervalMs = 1500,

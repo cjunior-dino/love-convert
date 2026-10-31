@@ -40,6 +40,18 @@ describe('ConversionService', () => {
     request.flush({});
   });
 
+  it('baixa o resultado como arquivo binário', () => {
+    const url = 'http://localhost/api/conversions/download/id/output.pdf';
+    let result: Blob | undefined;
+    service.downloadFile(url).subscribe((file) => (result = file));
+
+    const request = httpTesting.expectOne(url);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.responseType).toBe('blob');
+    request.flush(new Blob(['pdf'], { type: 'application/pdf' }));
+    expect(result?.type).toBe('application/pdf');
+  });
+
   it('repete a consulta até receber um estado final', () => {
     vi.useFakeTimers();
     const statuses: string[] = [];

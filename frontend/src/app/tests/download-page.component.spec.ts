@@ -25,6 +25,7 @@ describe('DownloadPageComponent', () => {
   let conversionService: {
     getConversion: ReturnType<typeof vi.fn>;
     absoluteDownloadUrl: ReturnType<typeof vi.fn>;
+    downloadFile: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -36,7 +37,18 @@ describe('DownloadPageComponent', () => {
     conversionService = {
       getConversion: vi.fn().mockReturnValue(of(completed)),
       absoluteDownloadUrl: vi.fn((path: string) => `http://localhost${path}`),
+      downloadFile: vi
+        .fn()
+        .mockReturnValue(of(new Blob(['docx'], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }))),
     };
+    Object.defineProperty(window.URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn().mockReturnValue('blob:http://localhost/download'),
+    });
+    Object.defineProperty(window.URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    });
     await TestBed.configureTestingModule({
       imports: [DownloadPageComponent],
       providers: [
@@ -65,10 +77,18 @@ describe('DownloadPageComponent', () => {
     vi.advanceTimersByTime(300);
 
     expect(click).toHaveBeenCalledTimes(1);
+    expect(conversionService.downloadFile).toHaveBeenCalledWith(
+      'http://localhost/api/conversions/download/conversion-id/output.docx',
+    );
     expect(sessionStorage.getItem('loveconvert:downloaded:conversion-id')).toBe('true');
     expect(fixture.componentInstance.automaticDownloadAttempted).toBe(true);
     click.mockRestore();
     vi.useRealTimers();
+  });
+
+  it('usa o nome original com a extensão de saída', () => {
+    fixture.detectChanges();
+    expect(fixture.componentInstance.downloadFilename).toBe('contrato.docx');
   });
 
   it('redireciona para processamento quando o arquivo ainda não terminou', () => {

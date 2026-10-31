@@ -18,13 +18,22 @@
             <span>Convertido para {{ outputLabel }}</span>
           </div>
         </div>
-        <a mat-flat-button class="download-button" [href]="downloadUrl">
-          ↓ Baixar {{ outputLabel }}
-        </a>
+        <button
+          mat-flat-button
+          type="button"
+          class="download-button"
+          [disabled]="isDownloading"
+          (click)="triggerDownload()"
+        >
+          {{ isDownloading ? 'Preparando…' : '↓ Baixar ' + outputLabel }}
+        </button>
       </div>
 
       @if (automaticDownloadAttempted) {
         <p class="download-hint">A tentativa de download automático foi realizada.</p>
+      }
+      @if (downloadError) {
+        <p class="download-hint" role="alert">{{ downloadError }}</p>
       }
 
       <a mat-button class="new-button" routerLink="/">← Converter outro arquivo</a>
