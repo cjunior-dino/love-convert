@@ -1,5 +1,17 @@
-import { ChangeDetectionStrategy, Component, ViewEncapsulation } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ViewEncapsulation,
+  effect,
+  inject,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Title } from '@angular/platform-browser';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
+
+import { LanguageService } from './core/i18n/language.service';
+import { SupportedLocale } from './core/i18n/translations';
 
 @Component({
   selector: 'app-root',
@@ -10,4 +22,37 @@ import { RouterLink, RouterOutlet } from '@angular/router';
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent {}
+export class AppComponent {
+  readonly i18n = inject(LanguageService);
+  private readonly router = inject(Router);
+  private readonly title = inject(Title);
+
+  constructor() {
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.updateTitle());
+
+    effect(() => {
+      this.i18n.locale();
+      this.updateTitle();
+    });
+  }
+
+  setLanguage(event: Event): void {
+    const locale = (event.target as HTMLSelectElement).value as SupportedLocale;
+    this.i18n.setLocale(locale);
+  }
+
+  private updateTitle(): void {
+    const url = this.router.url;
+    const key = url.includes('/download')
+      ? 'title.download'
+      : url.includes('/processando')
+        ? 'title.loading'
+        : 'title.home';
+    this.title.setTitle(this.i18n.t(key));
+  }
+}

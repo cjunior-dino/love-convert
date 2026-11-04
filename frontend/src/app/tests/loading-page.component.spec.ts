@@ -26,6 +26,7 @@ describe('LoadingPageComponent', () => {
   let conversionService: { watchConversion: ReturnType<typeof vi.fn> };
 
   async function create(status: ConversionDetail = processing): Promise<void> {
+    localStorage.setItem('loveconvert:language', 'pt-BR');
     router = {
       navigate: vi.fn().mockResolvedValue(true),
       navigateByUrl: vi.fn().mockResolvedValue(true),

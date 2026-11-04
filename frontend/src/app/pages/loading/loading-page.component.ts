@@ -13,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { ConversionDetail } from '../../core/models/conversion.models';
+import { LanguageService } from '../../core/i18n/language.service';
 import { ConversionService } from '../../core/services/conversion.service';
 
 @Component({
@@ -23,6 +24,7 @@ import { ConversionService } from '../../core/services/conversion.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoadingPageComponent implements OnInit {
+  readonly i18n = inject(LanguageService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly conversionService = inject(ConversionService);
@@ -54,14 +56,14 @@ export class LoadingPageComponent implements OnInit {
           }
           if (conversion.status === 'failed') {
             this.errorMessage =
-              conversion.error || 'Não foi possível concluir a conversão.';
+              conversion.error || this.i18n.t('loading.genericError');
           } else if (conversion.status === 'expired') {
-            this.errorMessage = 'Esta conversão expirou. Envie o arquivo novamente.';
+            this.errorMessage = this.i18n.t('loading.expired');
           }
           this.changeDetector.markForCheck();
         },
         error: () => {
-          this.errorMessage = 'Não foi possível consultar o andamento da conversão.';
+          this.errorMessage = this.i18n.t('loading.statusError');
           this.changeDetector.markForCheck();
         },
       });
@@ -69,14 +71,17 @@ export class LoadingPageComponent implements OnInit {
 
   get progressTitle(): string {
     if (!this.conversion) {
-      return 'Preparando sua conversão…';
+      return this.i18n.t('loading.preparing');
     }
-    return `Convertendo ${this.formatLabel(this.conversion.input_format)} para ${this.formatLabel(this.conversion.output_format)}…`;
+    return this.i18n.t('loading.converting', {
+      input: this.formatLabel(this.conversion.input_format),
+      output: this.formatLabel(this.conversion.output_format),
+    });
   }
 
   private formatLabel(format: string): string {
     const labels: Record<string, string> = {
-      docx: 'Word',
+      docx: this.i18n.t('format.word'),
       pdf: 'PDF',
       html: 'HTML',
       markdown: 'Markdown',

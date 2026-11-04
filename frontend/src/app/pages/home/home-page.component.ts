@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
 
 import { OutputFormat } from '../../core/models/conversion.models';
+import { LanguageService } from '../../core/i18n/language.service';
 import { ConversionService } from '../../core/services/conversion.service';
 import { FileSelectionService } from '../../core/services/file-selection.service';
 
@@ -22,6 +23,7 @@ import { FileSelectionService } from '../../core/services/file-selection.service
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomePageComponent {
+  readonly i18n = inject(LanguageService);
   private readonly conversionService = inject(ConversionService);
   private readonly fileSelection = inject(FileSelectionService);
   private readonly router = inject(Router);
@@ -33,31 +35,33 @@ export class HomePageComponent {
   isDragging = false;
   activeFormat: OutputFormat | null = null;
 
-  readonly formatOptions: Record<
+  get formatOptions(): Record<
     OutputFormat,
     { description: string; action: string; shortLabel: string }
-  > = {
-    pdf: {
-      description: 'Documento pronto para compartilhar',
-      action: 'Converter para PDF',
-      shortLabel: 'PDF',
-    },
-    html: {
-      description: 'Página pronta para visualizar',
-      action: 'Converter para HTML',
-      shortLabel: 'HTML',
-    },
-    markdown: {
-      description: 'Texto leve e estruturado',
-      action: 'Converter para Markdown',
-      shortLabel: 'MD',
-    },
-    docx: {
-      description: 'Documento editável no Word, sem OCR',
-      action: 'Converter para DOCX',
-      shortLabel: 'DOCX',
-    },
-  };
+  > {
+    return {
+      pdf: {
+        description: this.i18n.t('format.pdf.description'),
+        action: this.i18n.t('format.pdf.action'),
+        shortLabel: 'PDF',
+      },
+      html: {
+        description: this.i18n.t('format.html.description'),
+        action: this.i18n.t('format.html.action'),
+        shortLabel: 'HTML',
+      },
+      markdown: {
+        description: this.i18n.t('format.markdown.description'),
+        action: this.i18n.t('format.markdown.action'),
+        shortLabel: 'MD',
+      },
+      docx: {
+        description: this.i18n.t('format.docx.description'),
+        action: this.i18n.t('format.docx.action'),
+        shortLabel: 'DOCX',
+      },
+    };
+  }
 
   get isPdfInput(): boolean {
     return this.selectedFile?.name.toLowerCase().endsWith('.pdf') ?? false;
@@ -150,7 +154,7 @@ export class HomePageComponent {
       markdown: 'Markdown',
       html: 'HTML',
       pdf: 'PDF',
-      docx: 'Word',
+      docx: this.i18n.t('format.word'),
     };
     return labels[format];
   }
@@ -161,8 +165,8 @@ export class HomePageComponent {
       return body.error;
     }
     if (error.status === 0) {
-      return 'Não foi possível conectar ao servidor.';
+      return this.i18n.t('error.connection');
     }
-    return 'Não foi possível iniciar a conversão. Tente novamente.';
+    return this.i18n.t('error.startConversion');
   }
 }

@@ -38,11 +38,12 @@ class ConversionApiTests(APITestCase):
     def pdf(name="documento.pdf", content=b"%PDF-1.7"):
         return SimpleUploadedFile(name, content, content_type="application/pdf")
 
-    def post(self, file=None, output_format="markdown"):
+    def post(self, file=None, output_format="markdown", language=None):
         data = {"output_format": output_format}
         if file is not None:
             data["file"] = file
-        return self.client.post(self.url, data, format="multipart")
+        extra = {"HTTP_ACCEPT_LANGUAGE": language} if language else {}
+        return self.client.post(self.url, data, format="multipart", **extra)
 
     def create_conversion(self, **changes):
         values = {
@@ -63,6 +64,21 @@ class ConversionApiTests(APITestCase):
         response = self.post(self.docx("documento.txt"))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn(".docx", response.data["error"])
+
+    def test_returns_validation_error_in_english(self):
+        response = self.post(self.docx("documento.txt"), language="en-US")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["error"], "Only .docx and .pdf files are accepted."
+        )
+
+    def test_returns_validation_error_in_latin_american_spanish(self):
+        response = self.post(self.pdf(), "html", language="es-MX")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["error"],
+            "Los archivos PDF solo se pueden convertir a DOCX.",
+        )
 
     def test_rejects_pdf_to_html(self):
         response = self.post(self.pdf(), "html")
@@ -85,8 +101,19 @@ class ConversionApiTests(APITestCase):
         conversion = Conversion.objects.get()
         delay.assert_called_once_with(str(conversion.id))
         self.assertEqual(conversion.input_format, "docx")
+        self.assertEqual(conversion.language, "pt-br")
         self.assertTrue(conversion.input_file.endswith("input.docx"))
         self.assertTrue((Path(self.temp_dir.name) / conversion.input_file).is_file())
+
+    @patch("conversions.views.process_conversion.delay")
+    def test_saves_browser_language_for_the_worker(self, delay):
+        response = self.post(
+            self.docx("document.docx"), "pdf", language="en-US,en;q=0.9"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(Conversion.objects.get().language, "en")
+        delay.assert_called_once()
 
     @patch("conversions.views.process_conversion.delay")
     def test_pdf_input_preserves_extension(self, delay):

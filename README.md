@@ -8,6 +8,16 @@ O fluxo da interface possui três páginas:
 2. acompanhamento do processamento;
 3. download, com uma tentativa automática e botão manual como alternativa.
 
+## Idiomas
+
+A interface e as mensagens da API estão disponíveis em:
+
+- português do Brasil (`pt-BR`);
+- inglês (`en`);
+- espanhol latino-americano (`es-419`).
+
+Na primeira visita, o frontend escolhe o idioma a partir das preferências do navegador. O seletor no cabeçalho permite trocar o idioma a qualquer momento e salva a escolha no `localStorage`. As requisições enviam `Accept-Language` ao Django, e o idioma da conversão é armazenado para que mensagens assíncronas do worker Celery sejam produzidas no mesmo idioma.
+
 A conversão de PDF para Word é feita **sem OCR**. PDFs compostos somente por imagens podem gerar um DOCX sem texto editável.
 
 ## Arquitetura
@@ -211,6 +221,8 @@ Campos:
 
 - `file`: DOCX ou PDF;
 - `output_format`: `pdf`, `html`, `markdown` ou `docx`, conforme a entrada.
+
+O cabeçalho opcional `Accept-Language` aceita `pt-BR`, `en` e variantes de espanhol, normalizadas pelo backend para `es-419`.
 
 Resposta `202 Accepted`:
 

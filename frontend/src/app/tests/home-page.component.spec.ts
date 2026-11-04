@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
 import { ConversionQueuedResponse } from '../core/models/conversion.models';
+import { LanguageService } from '../core/i18n/language.service';
 import { ConversionService } from '../core/services/conversion.service';
 import { HomePageComponent } from '../pages/home/home-page.component';
 
@@ -29,6 +30,7 @@ describe('HomePageComponent', () => {
   let router: { navigate: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    localStorage.setItem('loveconvert:language', 'pt-BR');
     conversionService = { enqueueConversion: vi.fn().mockReturnValue(of(queued)) };
     router = { navigate: vi.fn().mockResolvedValue(true) };
 
@@ -62,6 +64,18 @@ describe('HomePageComponent', () => {
   it('oferece PDF, HTML e Markdown para DOCX', () => {
     component.selectFile(new File(['docx'], 'documento.docx'));
     expect(component.availableFormats).toEqual(['pdf', 'html', 'markdown']);
+  });
+
+  it('atualiza os textos quando o idioma é alterado', () => {
+    TestBed.inject(LanguageService).setLocale('es-419');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'Convierte cualquier documento',
+    );
+    expect(fixture.nativeElement.textContent).toContain(
+      'Seleccionar archivo',
+    );
   });
 
   it('envia a conversão e navega para a página de processamento', () => {

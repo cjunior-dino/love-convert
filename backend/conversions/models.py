@@ -27,6 +27,7 @@ class Conversion(models.Model):
         max_length=16, choices=Status.choices, default=Status.PENDING
     )
     error_message = models.TextField(blank=True)
+    language = models.CharField(max_length=10, default="pt-br")
     attempt_count = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)

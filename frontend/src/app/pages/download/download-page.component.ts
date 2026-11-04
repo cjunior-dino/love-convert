@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { ConversionDetail } from '../../core/models/conversion.models';
+import { LanguageService } from '../../core/i18n/language.service';
 import { ConversionService } from '../../core/services/conversion.service';
 
 @Component({
@@ -20,6 +21,7 @@ import { ConversionService } from '../../core/services/conversion.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DownloadPageComponent implements OnInit {
+  readonly i18n = inject(LanguageService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly conversionService = inject(ConversionService);
@@ -51,7 +53,7 @@ export class DownloadPageComponent implements OnInit {
         }
         if (conversion.status !== 'completed' || !conversion.download_url) {
           this.errorMessage =
-            conversion.error || 'O arquivo não está mais disponível para download.';
+            conversion.error || this.i18n.t('download.missing');
           this.changeDetector.markForCheck();
           return;
         }
@@ -63,7 +65,7 @@ export class DownloadPageComponent implements OnInit {
         }
       },
       error: () => {
-        this.errorMessage = 'Não foi possível localizar esta conversão.';
+        this.errorMessage = this.i18n.t('download.notFound');
         this.changeDetector.markForCheck();
       },
     });
@@ -77,7 +79,7 @@ export class DownloadPageComponent implements OnInit {
 
   get outputLabel(): string {
     const labels: Record<string, string> = {
-      docx: 'Word',
+      docx: this.i18n.t('format.word'),
       pdf: 'PDF',
       html: 'HTML',
       markdown: 'Markdown',
@@ -87,7 +89,7 @@ export class DownloadPageComponent implements OnInit {
 
   get downloadFilename(): string {
     if (!this.conversion) {
-      return 'arquivo-convertido';
+      return this.i18n.t('download.defaultFilename');
     }
     const extension = this.conversion.output_format === 'markdown'
       ? 'md'
@@ -118,8 +120,7 @@ export class DownloadPageComponent implements OnInit {
       error: () => {
         this.isDownloading = false;
         this.automaticDownloadAttempted ||= automatic;
-        this.downloadError =
-          'O download automático foi bloqueado ou interrompido. Use o botão para tentar novamente.';
+        this.downloadError = this.i18n.t('download.blocked');
         this.changeDetector.markForCheck();
       },
     });

@@ -6,12 +6,14 @@ import {
 import { TestBed } from '@angular/core/testing';
 
 import { ConversionService } from '../core/services/conversion.service';
+import { LanguageService } from '../core/i18n/language.service';
 
 describe('ConversionService', () => {
   let service: ConversionService;
   let httpTesting: HttpTestingController;
 
   beforeEach(() => {
+    localStorage.setItem('loveconvert:language', 'pt-BR');
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
@@ -27,9 +29,19 @@ describe('ConversionService', () => {
 
     const request = httpTesting.expectOne('/api/conversions/');
     expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Accept-Language')).toBe('pt-BR');
     const formData = request.request.body as FormData;
     expect((formData.get('file') as File).name).toBe('documento.docx');
     expect(formData.get('output_format')).toBe('pdf');
+    request.flush({});
+  });
+
+  it('envia o idioma selecionado para a API', () => {
+    TestBed.inject(LanguageService).setLocale('es-419');
+    service.getConversion('conversion-id').subscribe();
+
+    const request = httpTesting.expectOne('/api/conversions/conversion-id/');
+    expect(request.request.headers.get('Accept-Language')).toBe('es-419');
     request.flush({});
   });
 

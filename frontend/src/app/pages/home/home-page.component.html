@@ -1,13 +1,13 @@
 <main id="main" class="page-shell">
   <section class="hero" aria-labelledby="page-title">
     <h1 id="page-title">
-      Converta qualquer documento
-      <span>com poucos cliques</span>
+      {{ i18n.t('home.heroTitle') }}
+      <span>{{ i18n.t('home.heroAccent') }}</span>
     </h1>
-    <p>Envie seu arquivo e escolha um dos formatos disponíveis.</p>
+    <p>{{ i18n.t('home.heroSubtitle') }}</p>
   </section>
 
-  <section class="converter" aria-label="Conversor de documentos">
+  <section class="converter" [attr.aria-label]="i18n.t('home.converterLabel')">
     <input
       #fileInput
       class="visually-hidden"
@@ -30,10 +30,10 @@
             <path d="M5 14v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"></path>
           </svg>
         </span>
-        <h2>Arraste seu documento aqui</h2>
-        <p>Arquivos DOCX ou PDF de até 10 MB</p>
+        <h2>{{ i18n.t('home.dropTitle') }}</h2>
+        <p>{{ i18n.t('home.maxSize') }}</p>
         <button mat-flat-button type="button" (click)="fileInput.click()">
-          Selecionar arquivo
+          {{ i18n.t('home.selectFile') }}
         </button>
       </div>
     } @else {
@@ -48,9 +48,9 @@
         </span>
         <div class="selected-file__details">
           <strong>{{ selectedFile.name }}</strong>
-          <span>Documento {{ selectedFileType }} · {{ selectedFileSize }}</span>
+          <span>{{ i18n.t('home.document', { type: selectedFileType, size: selectedFileSize }) }}</span>
         </div>
-        <span class="selected-file__check" aria-label="Arquivo válido">✓</span>
+        <span class="selected-file__check" [attr.aria-label]="i18n.t('home.validFile')">✓</span>
         <button
           class="change-file"
           mat-button
@@ -58,14 +58,14 @@
           (click)="fileInput.click()"
           [disabled]="isLoading"
         >
-          <span aria-hidden="true">↻</span> Trocar arquivo
+          <span aria-hidden="true">↻</span> {{ i18n.t('home.changeFile') }}
         </button>
       </div>
 
       <section class="format-section" aria-labelledby="format-title">
         <div class="section-heading">
-          <h2 id="format-title">Converter para</h2>
-          <p>Escolha o formato de saída disponível para este arquivo.</p>
+          <h2 id="format-title">{{ i18n.t('home.convertTo') }}</h2>
+          <p>{{ i18n.t('home.chooseOutput') }}</p>
         </div>
 
         @if (errorMessage) {
@@ -86,7 +86,7 @@
               [attr.aria-label]="formatOptions[format].action"
             >
               @if (format === 'docx') {
-                <span class="format-card__badge">Sem OCR</span>
+                <span class="format-card__badge">{{ i18n.t('home.noOcr') }}</span>
               }
               <span class="format-card__icon" aria-hidden="true">
                 {{ formatOptions[format].shortLabel }}
@@ -98,7 +98,7 @@
               <span class="format-card__action">
                 @if (isLoading && activeFormat === format) {
                   <mat-spinner diameter="18"></mat-spinner>
-                  Enviando…
+                  {{ i18n.t('home.sending') }}
                 } @else {
                   {{ formatOptions[format].action }} <i aria-hidden="true">→</i>
                 }
@@ -110,18 +110,18 @@
     }
   </section>
 
-  <div id="privacy" class="trust-row" aria-label="Privacidade e segurança">
-    <span>✓ Processamento seguro</span>
-    <span>♲ Arquivos excluídos automaticamente</span>
-    <span>Sem cadastro</span>
+  <div id="privacy" class="trust-row" [attr.aria-label]="i18n.t('home.trustLabel')">
+    <span>✓ {{ i18n.t('home.secureProcessing') }}</span>
+    <span>♲ {{ i18n.t('home.autoDelete') }}</span>
+    <span>{{ i18n.t('home.noRegistration') }}</span>
   </div>
 
   <section id="how-it-works" class="how-it-works" aria-labelledby="how-title">
-    <h2 id="how-title">Como funciona</h2>
+    <h2 id="how-title">{{ i18n.t('home.howTitle') }}</h2>
     <ol>
-      <li><b>1</b><span><strong>Envie seu arquivo</strong><small>Arraste ou selecione um DOCX ou PDF.</small></span></li>
-      <li><b>2</b><span><strong>Escolha o formato</strong><small>Veja somente as conversões compatíveis.</small></span></li>
-      <li><b>3</b><span><strong>Converta e baixe</strong><small>Receba o arquivo pronto em poucos instantes.</small></span></li>
+      <li><b>1</b><span><strong>{{ i18n.t('home.step1Title') }}</strong><small>{{ i18n.t('home.step1Description') }}</small></span></li>
+      <li><b>2</b><span><strong>{{ i18n.t('home.step2Title') }}</strong><small>{{ i18n.t('home.step2Description') }}</small></span></li>
+      <li><b>3</b><span><strong>{{ i18n.t('home.step3Title') }}</strong><small>{{ i18n.t('home.step3Description') }}</small></span></li>
     </ol>
   </section>
 </main>

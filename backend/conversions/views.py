@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from kombu.exceptions import OperationalError as QueueOperationalError
 
 from .models import Conversion
+from .i18n import request_language, translate
 from .serializers import ConversionRequestSerializer
 from .tasks import process_conversion
 
@@ -22,14 +23,14 @@ TEXT_OUTPUT_FORMATS = {"markdown", "html"}
 DOWNLOAD_FILENAMES = {"output.md", "output.html", "output.pdf", "output.docx"}
 
 
-def first_validation_error(errors) -> str:
+def first_validation_error(errors, language: str) -> str:
     for field_errors in errors.values():
         if isinstance(field_errors, dict):
-            return first_validation_error(field_errors)
+            return first_validation_error(field_errors, language)
         if isinstance(field_errors, (list, tuple)) and field_errors:
             return str(field_errors[0])
         return str(field_errors)
-    return "Dados inválidos."
+    return translate("validation.invalid_data", language)
 
 
 def conversion_payload(conversion: Conversion, request=None) -> dict:
@@ -76,10 +77,16 @@ class ConversionCreateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        serializer = ConversionRequestSerializer(data=request.data)
+        language = request_language(request)
+        serializer = ConversionRequestSerializer(
+            data=request.data, context={"request": request}
+        )
         if not serializer.is_valid():
             return Response(
-                {"success": False, "error": first_validation_error(serializer.errors)},
+                {
+                    "success": False,
+                    "error": first_validation_error(serializer.errors, language),
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -92,6 +99,7 @@ class ConversionCreateView(APIView):
             input_format=input_extension.lstrip("."),
             input_file="",
             output_format=output_format,
+            language=language,
             expires_at=timezone.now() + retention,
         )
         conversion_dir = settings.MEDIA_ROOT / "conversions" / str(conversion.id)
@@ -108,9 +116,7 @@ class ConversionCreateView(APIView):
         except (CeleryError, QueueOperationalError, OSError):
             shutil.rmtree(conversion_dir, ignore_errors=True)
             conversion.status = Conversion.Status.FAILED
-            conversion.error_message = (
-                "O serviço de conversão está temporariamente indisponível."
-            )
+            conversion.error_message = translate("queue.unavailable", language)
             conversion.completed_at = timezone.now()
             conversion.save(
                 update_fields=["status", "error_message", "completed_at"]

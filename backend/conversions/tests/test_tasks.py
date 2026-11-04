@@ -86,6 +86,19 @@ class ConversionTaskTests(TestCase):
         self.assertIn("máximo de tentativas", conversion.error_message)
         convert.assert_not_called()
 
+    @patch("conversions.tasks.DocumentConverter.convert")
+    def test_worker_error_uses_conversion_language(self, convert):
+        conversion = self.create_conversion(language="es-419", attempt_count=3)
+        result = process_conversion(str(conversion.id))
+
+        conversion.refresh_from_db()
+        self.assertEqual(result["status"], Conversion.Status.FAILED)
+        self.assertEqual(
+            conversion.error_message,
+            "La conversión superó el número máximo de intentos.",
+        )
+        convert.assert_not_called()
+
     def test_missing_input_is_reported(self):
         conversion = self.create_conversion()
         (Path(self.temp_dir.name) / conversion.input_file).unlink()

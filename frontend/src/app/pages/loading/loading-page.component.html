@@ -1,17 +1,17 @@
 <main class="page-shell process-page">
   @if (!errorMessage) {
     <section class="process-card" aria-live="polite" aria-busy="true">
-      <p class="process-card__eyebrow">Processamento seguro</p>
+      <p class="process-card__eyebrow">{{ i18n.t('loading.secure') }}</p>
       <h1>{{ progressTitle }}</h1>
-      <mat-spinner diameter="74" aria-label="Conversão em andamento"></mat-spinner>
-      <p>Você pode aguardar nesta página. O download será preparado assim que o arquivo estiver pronto.</p>
+      <mat-spinner diameter="74" [attr.aria-label]="i18n.t('loading.inProgress')"></mat-spinner>
+      <p>{{ i18n.t('loading.wait') }}</p>
     </section>
   } @else {
     <section class="process-card process-card--error" role="alert">
       <div class="error-badge" aria-hidden="true">!</div>
-      <h1>Não foi possível concluir</h1>
+      <h1>{{ i18n.t('loading.failedTitle') }}</h1>
       <p>{{ errorMessage }}</p>
-      <a mat-flat-button routerLink="/">Tentar com outro arquivo</a>
+      <a mat-flat-button routerLink="/">{{ i18n.t('loading.tryAnother') }}</a>
     </section>
   }
 </main>

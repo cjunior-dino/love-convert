@@ -6,6 +6,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import Conversion
+from .i18n import localized_exception_message, translate
 from .services import (
     ConversionDependencyError,
     DocumentConversionError,
@@ -31,7 +32,9 @@ def process_conversion(conversion_id: str) -> dict[str, str]:
             return {"status": Conversion.Status.EXPIRED}
         if conversion.attempt_count >= 3:
             conversion.status = Conversion.Status.FAILED
-            conversion.error_message = "A conversão excedeu o número máximo de tentativas."
+            conversion.error_message = translate(
+                "task.max_attempts", conversion.language
+            )
             conversion.completed_at = timezone.now()
             conversion.save(
                 update_fields=["status", "error_message", "completed_at"]
@@ -57,10 +60,14 @@ def process_conversion(conversion_id: str) -> dict[str, str]:
     media_root = settings.MEDIA_ROOT.resolve()
 
     if media_root not in input_path.parents or input_path.parent != conversion_dir:
-        _mark_failed(conversion_id, "O arquivo de origem não é válido.")
+        _mark_failed(
+            conversion_id, translate("task.invalid_source", conversion.language)
+        )
         return {"status": Conversion.Status.FAILED}
     if not input_path.is_file():
-        _mark_failed(conversion_id, "O arquivo de origem não foi encontrado.")
+        _mark_failed(
+            conversion_id, translate("task.missing_source", conversion.language)
+        )
         return {"status": Conversion.Status.FAILED}
 
     try:
@@ -76,10 +83,14 @@ def process_conversion(conversion_id: str) -> dict[str, str]:
         )
         return {"status": Conversion.Status.COMPLETED}
     except (ConversionDependencyError, DocumentConversionError) as exc:
-        _mark_failed(conversion_id, str(exc))
+        _mark_failed(
+            conversion_id, localized_exception_message(exc, conversion.language)
+        )
         return {"status": Conversion.Status.FAILED}
     except Exception:
-        _mark_failed(conversion_id, "Não foi possível converter o arquivo.")
+        _mark_failed(
+            conversion_id, translate("task.generic_failure", conversion.language)
+        )
         return {"status": Conversion.Status.FAILED}
 
 

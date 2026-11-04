@@ -128,7 +128,6 @@ app-root {
 }
 
 .privacy-link {
-  justify-self: end;
   min-height: 42px;
   padding: 0 18px;
   display: inline-flex;
@@ -141,6 +140,36 @@ app-root {
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
+}
+
+.topbar__actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.language-selector {
+  min-height: 42px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #263854;
+  border: 1px solid #cfd9e7;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 65%);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.language-selector select {
+  color: inherit;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
 }
 
 .privacy-link svg {
@@ -908,7 +937,7 @@ footer {
     display: none;
   }
 
-  .privacy-link {
+  .topbar__actions {
     grid-column: 2;
   }
 

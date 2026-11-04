@@ -30,6 +30,7 @@ describe('DownloadPageComponent', () => {
 
   beforeEach(async () => {
     sessionStorage.clear();
+    localStorage.setItem('loveconvert:language', 'pt-BR');
     router = {
       navigate: vi.fn().mockResolvedValue(true),
       navigateByUrl: vi.fn().mockResolvedValue(true),

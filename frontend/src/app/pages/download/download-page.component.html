@@ -2,10 +2,10 @@
   @if (conversion) {
     <section class="result-page" aria-labelledby="result-title">
       <div class="success-badge" aria-hidden="true">✓</div>
-      <p class="result-page__eyebrow">Conversão concluída</p>
-      <h1 id="result-title">Seu documento está pronto</h1>
+      <p class="result-page__eyebrow">{{ i18n.t('download.completed') }}</p>
+      <h1 id="result-title">{{ i18n.t('download.ready') }}</h1>
       <p class="result-page__description" role="status">
-        O download será iniciado automaticamente. Se isso não acontecer, use o botão abaixo.
+        {{ i18n.t('download.description') }}
       </p>
 
       <div class="result-card result-card--download">
@@ -15,7 +15,7 @@
           </span>
           <div>
             <strong>{{ conversion.original_name }}</strong>
-            <span>Convertido para {{ outputLabel }}</span>
+            <span>{{ i18n.t('download.convertedTo', { format: outputLabel }) }}</span>
           </div>
         </div>
         <button
@@ -25,29 +25,29 @@
           [disabled]="isDownloading"
           (click)="triggerDownload()"
         >
-          {{ isDownloading ? 'Preparando…' : '↓ Baixar ' + outputLabel }}
+          {{ isDownloading ? i18n.t('download.preparing') : i18n.t('download.action', { format: outputLabel }) }}
         </button>
       </div>
 
       @if (automaticDownloadAttempted) {
-        <p class="download-hint">A tentativa de download automático foi realizada.</p>
+        <p class="download-hint">{{ i18n.t('download.autoAttempted') }}</p>
       }
       @if (downloadError) {
         <p class="download-hint" role="alert">{{ downloadError }}</p>
       }
 
-      <a mat-button class="new-button" routerLink="/">← Converter outro arquivo</a>
+      <a mat-button class="new-button" routerLink="/">{{ i18n.t('download.another') }}</a>
     </section>
   } @else if (errorMessage) {
     <section class="process-card process-card--error" role="alert">
       <div class="error-badge" aria-hidden="true">!</div>
-      <h1>Arquivo indisponível</h1>
+      <h1>{{ i18n.t('download.unavailable') }}</h1>
       <p>{{ errorMessage }}</p>
-      <a mat-flat-button routerLink="/">Iniciar outra conversão</a>
+      <a mat-flat-button routerLink="/">{{ i18n.t('download.startAnother') }}</a>
     </section>
   } @else {
     <section class="process-card" aria-live="polite">
-      <h1>Preparando o download…</h1>
+      <h1>{{ i18n.t('download.locating') }}</h1>
     </section>
   }
 </main>

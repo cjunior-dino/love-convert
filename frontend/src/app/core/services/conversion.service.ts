@@ -7,10 +7,12 @@ import {
   ConversionQueuedResponse,
   OutputFormat,
 } from '../models/conversion.models';
+import { LanguageService } from '../i18n/language.service';
 
 @Injectable({ providedIn: 'root' })
 export class ConversionService {
   private readonly http = inject(HttpClient);
+  private readonly i18n = inject(LanguageService);
   private readonly apiBaseUrl = window.location.origin;
 
   enqueueConversion(
@@ -23,17 +25,22 @@ export class ConversionService {
     return this.http.post<ConversionQueuedResponse>(
       '/api/conversions/',
       formData,
+      { headers: this.languageHeaders() },
     );
   }
 
   getConversion(conversionId: string): Observable<ConversionDetail> {
     return this.http.get<ConversionDetail>(
       `/api/conversions/${encodeURIComponent(conversionId)}/`,
+      { headers: this.languageHeaders() },
     );
   }
 
   downloadFile(downloadUrl: string): Observable<Blob> {
-    return this.http.get(downloadUrl, { responseType: 'blob' });
+    return this.http.get(downloadUrl, {
+      headers: this.languageHeaders(),
+      responseType: 'blob',
+    });
   }
 
   watchConversion(
@@ -57,5 +64,9 @@ export class ConversionService {
       `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`,
       this.apiBaseUrl,
     ).toString();
+  }
+
+  private languageHeaders(): Record<string, string> {
+    return { 'Accept-Language': this.i18n.locale() };
   }
 }
