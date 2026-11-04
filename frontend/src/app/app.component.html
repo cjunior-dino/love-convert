@@ -21,9 +21,9 @@
         <span aria-hidden="true">🌐</span>
         <span class="visually-hidden">{{ i18n.t('language.selector') }}</span>
         <select
-          [value]="i18n.locale()"
+          [ngModel]="i18n.locale()"
           [attr.aria-label]="i18n.t('language.selector')"
-          (change)="setLanguage($event)"
+          (ngModelChange)="setLanguage($event)"
         >
           @for (option of i18n.options; track option.code) {
             <option [value]="option.code" [attr.title]="option.label">

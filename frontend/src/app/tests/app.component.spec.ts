@@ -36,4 +36,35 @@ describe('AppComponent', () => {
     expect(TestBed.inject(LanguageService).locale()).toBe('en');
     expect(fixture.nativeElement.textContent).toContain('Privacy');
   });
+
+  it('mantém o seletor sincronizado com o idioma carregado', async () => {
+    TestBed.inject(LanguageService).setLocale('en');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const select = fixture.nativeElement.querySelector(
+      '.language-selector select',
+    ) as HTMLSelectElement;
+    expect(select.value).toBe('en');
+  });
+});
+
+describe('AppComponent com idioma persistido', () => {
+  it('carrega o valor salvo no localStorage no seletor', async () => {
+    localStorage.setItem('loveconvert:language', 'en');
+    await TestBed.configureTestingModule({
+      imports: [AppComponent],
+      providers: [provideRouter(routes)],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const select = fixture.nativeElement.querySelector(
+      '.language-selector select',
+    ) as HTMLSelectElement;
+    expect(select.value).toBe('en');
+    expect(fixture.nativeElement.textContent).toContain('Privacy');
+  });
 });

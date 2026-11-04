@@ -6,6 +6,7 @@ import {
   inject,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { Title } from '@angular/platform-browser';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
@@ -16,7 +17,7 @@ import { SupportedLocale } from './core/i18n/translations';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterLink, RouterOutlet],
+  imports: [FormsModule, RouterLink, RouterOutlet],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   encapsulation: ViewEncapsulation.None,
@@ -41,8 +42,7 @@ export class AppComponent {
     });
   }
 
-  setLanguage(event: Event): void {
-    const locale = (event.target as HTMLSelectElement).value as SupportedLocale;
+  setLanguage(locale: SupportedLocale): void {
     this.i18n.setLocale(locale);
   }
 

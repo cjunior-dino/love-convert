@@ -17,7 +17,7 @@ Esta seção substitui as referências históricas a processamento síncrono e S
 - PDF para DOCX é identificado na interface como **sem OCR**.
 - A interface e a API suportam português do Brasil, inglês e espanhol latino-americano, com detecção do navegador e seletor persistente.
 - Os testes foram organizados em `backend/tests/`, `backend/conversions/tests/` e `frontend/src/app/tests/`.
-- A validação atual possui 35 testes de backend e 25 testes de frontend aprovados.
+- A validação atual possui 35 testes de backend e 27 testes de frontend aprovados.
 
 Para configuração, execução, API e comandos atualizados, consulte o `README.md` da raiz.
 
